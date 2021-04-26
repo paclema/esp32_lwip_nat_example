@@ -23,6 +23,9 @@ I have created a fork to arduino-esp32 repo containing this compiled lib, so It 
 
 ```ini
 platform_packages =
-  framework-arduinoespressif32 @ https://github.com/paclema/arduino-esp32.git#lwip_enabled
+  framework-arduinoespressif32 @ https://github.com/paclema/arduino-esp32#lwip_enabled
 ...
 ```
+
+To compile it correctly, you will need to replace the `C:\Users\<your-user>\.platformio\packages\toolchain-xtensa32\` with the content of this version:
+https://dl.espressif.com/github_assets/espressif/crosstool-NG/releases/download/esp-2020r3/

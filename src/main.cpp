@@ -3,8 +3,8 @@
 // NAPT example released to public domain
 
 
-#define STASSID "paclema_fon"
-#define STAPSK  "paclematest"
+#define STASSID "ssid_wifi"
+#define STAPSK  "pwd_wifi"
 
 // #define NAPT 1000
 // #define NAPT_PORT 10
