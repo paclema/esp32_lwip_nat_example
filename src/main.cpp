@@ -59,21 +59,28 @@ void setup() {
   //** give DNS servers to AP side
   //**
   //***********************************
+  // For ESP8266 example:
   // dhcpSoftAP.dhcps_set_dns(0, WiFi.dnsIP(0));
   // dhcpSoftAP.dhcps_set_dns(1, WiFi.dnsIP(1));
 
-  // Enable DNS (offer) for dhcp server
+  // For esp32:
+  // // Enable DNS (offer) for dhcp server
   // dhcps_offer_t dhcps_dns_value = OFFER_DNS;
   // dhcps_set_option_info(6, &dhcps_dns_value, sizeof(dhcps_dns_value));
 
   // ip_addr_t dnsserver;
   // // Set custom dns server address for dhcp server
   // dnsserver.u_addr.ip4.addr = htonl(MY_DNS_IP_ADDR);
+  // dnsserver.u_addr.ip4.addr = esp_ip4addr_aton("8.8.8.8");
   // dnsserver.type = IPADDR_TYPE_V4;
   // dhcps_dns_setserver(&dnsserver);
 
+  // tcpip_adapter_get_dns_info(TCPIP_ADAPTER_IF_AP, TCPIP_ADAPTER_DNS_MAIN, &dnsinfo);
+  // Serial.printf("DNS IP:" IPSTR, IP2STR(&dnsinfo.ip.u_addr.ip4));
 
 
+
+  // Other way that does not work:
   // WiFi.softAPConfig(  // enable AP, with android-compatible google domain
   //   IPAddress(172, 217, 28, 254),
   //   IPAddress(172, 217, 28, 254),
@@ -115,6 +122,11 @@ void setup() {
 
   Serial.printf("Heap before: %d\n", ESP.getFreeHeap());
 
+
+  //**  Enable NAT:
+  //**
+  //***********************************
+  // For ESP8266 example:
   // err_t ret = ip_napt_init(NAPT, NAPT_PORT);
   // err_t ret = 0;
   // Serial.printf("ip_napt_init(%d,%d): ret=%d (OK=%d)\n", NAPT, NAPT_PORT, (int)ret, (int)ERR_OK);
@@ -133,11 +145,9 @@ void setup() {
   //   Serial.printf("NAPT initialization failed\n");
   // }
 
-
-
-
+  // For esp32:
   #if IP_NAPT
-  u32_t napt_netif_ip = 0xC0A80401; // Set to ip address of softAP netif (Default is 192.168.4.1)
+  // u32_t napt_netif_ip = 0xC0A80401; // Set to ip address of softAP netif (Default is 192.168.4.1)
   // ip_napt_enable(htonl(napt_netif_ip), 1);
   // ip_napt_enable_no(WiFi.softAPNetworkID(), 1);
   ip_napt_enable_no(ESP_IF_WIFI_AP, 1);
