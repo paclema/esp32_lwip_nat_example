@@ -6,13 +6,6 @@
 #define STASSID "ssid_wifi"
 #define STAPSK  "pwd_wifi"
 
-// #define NAPT 1000
-// #define NAPT_PORT 10
-
-// #include <ESP8266WiFi.h>
-// #include <lwip/napt.h>
-// #include <lwip/dns.h>
-// #include <LwipDhcpServer.h>
 
 #include <WiFi.h>
 #if !IP_NAPT
@@ -20,14 +13,11 @@
 #else
   #include "lwip/lwip_napt.h"
 #endif
-#include <lwip/dns.h>
-// #include <LwipDhcpServer.h>
-// #include "dhcpserver/dhcpserver.h"
+
 #include "dhcpserver/dhcpserver.h"
 #include "dhcpserver/dhcpserver_options.h"
 
 
-#define MY_DNS_IP_ADDR 0x08080808 // 8.8.8.8
 
 
 
@@ -39,7 +29,7 @@ void setup() {
 
 
   
-  //** first, connect to STA so we can get a proper local DNS server
+  //** First, connect to STA so we can get a proper local DNS server
   //**
   //***********************************
   WiFi.mode(WIFI_MODE_APSTA);
@@ -56,7 +46,7 @@ void setup() {
 
 
 
-  //** give DNS servers to AP side
+  //** Give DNS servers to AP side (Added after softAP setup)
   //**
   //***********************************
   // For ESP8266 example:
@@ -64,20 +54,27 @@ void setup() {
   // dhcpSoftAP.dhcps_set_dns(1, WiFi.dnsIP(1));
 
   // For esp32:
-  // // Enable DNS (offer) for dhcp server
+  #ifdef __DHCPS_H__
+    Serial.println("all should works");           // But it does not so I have commented.
+    // Unfortunatelly,it appears the errors while linking as explained here: https://github.com/espressif/arduino-esp32/issues/5117
+
+    // Enable DNS (offer) for dhcp server:
+
   // dhcps_offer_t dhcps_dns_value = OFFER_DNS;
   // dhcps_set_option_info(6, &dhcps_dns_value, sizeof(dhcps_dns_value));
 
+    // Set custom dns server address for dhcp server
   // ip_addr_t dnsserver;
-  // // Set custom dns server address for dhcp server
-  // dnsserver.u_addr.ip4.addr = htonl(MY_DNS_IP_ADDR);
-  // dnsserver.u_addr.ip4.addr = esp_ip4addr_aton("8.8.8.8");
+    // dnsserver.u_addr.ip4.addr = ipaddr_addr(DEFAULT_DNS);;
+    // dnsserver.u_addr.ip4.addr = ipaddr_addr("8.8.8.8");
   // dnsserver.type = IPADDR_TYPE_V4;
   // dhcps_dns_setserver(&dnsserver);
 
   // tcpip_adapter_get_dns_info(TCPIP_ADAPTER_IF_AP, TCPIP_ADAPTER_DNS_MAIN, &dnsinfo);
   // Serial.printf("DNS IP:" IPSTR, IP2STR(&dnsinfo.ip.u_addr.ip4));
-
+  #else
+  Serial.println("DHCPS_H not included");
+  #endif
 
 
   // Other way that does not work:
@@ -86,17 +83,9 @@ void setup() {
   //   IPAddress(172, 217, 28, 254),
   //   IPAddress(255, 255, 255, 0));
 
-  // WiFi.softAPConfig(  // enable AP, with android-compatible google domain
-  //   IPAddress(192, 168, 4, 1),
-  //   IPAddress(192, 168, 4, 1),
-  //   IPAddress(255, 255, 255, 0),
-  //   WiFi.dnsIP(0),
-  //   WiFi.dnsIP(1)
-  //   );
 
 
-
-  // From topic https://esp32.com/viewtopic.php?t=3761#p17169
+  // SOLUTION: From topic https://esp32.com/viewtopic.php?t=3761#p17169
   // tcpip_adapter_ip_info_t info = {0};
   // tcpip_adapter_dns_info_t dns_info = {0};
   // memset (&dns_info, 8, sizeof(dns_info));
@@ -113,50 +102,69 @@ void setup() {
   // tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
 
 
-
   //**  Enable wifi AP:
   //**
   //***********************************
   WiFi.softAP(STASSID "extender2", STAPSK);
-  Serial.printf("AP: %s\n", WiFi.softAPIP().toString().c_str());
 
-  Serial.printf("Heap before: %d\n", ESP.getFreeHeap());
+  Serial.printf("\nAP: %s\n", WiFi.softAPIP().toString().c_str());
+
+
+
+
+  //** Give DNS servers to AP side:
+  //**
+  //***********************************
+  esp_err_t err;
+  tcpip_adapter_dns_info_t ip_dns;
+
+
+  err = tcpip_adapter_dhcps_stop(TCPIP_ADAPTER_IF_AP);
+  Serial.printf("\ntcpip_adapter_dhcps_stop: err %s", esp_err_to_name(err)) ;
+
+  err = tcpip_adapter_get_dns_info(TCPIP_ADAPTER_IF_STA, ESP_NETIF_DNS_MAIN, &ip_dns);
+  Serial.printf("\ntcpip_adapter_get_dns_info: err %s . ip_dns: " IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
+
+  // err = tcpip_adapter_set_dns_info(TCPIP_ADAPTER_IF_STA, ESP_NETIF_DNS_FALLBACK, &ip_dns);
+  // Serial.printf("\tcpip_adapter_set_dns_info ESP_NETIF_DNS_FALLBACK: err %s . ip_dns:" IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
+ 
+  err = tcpip_adapter_set_dns_info(TCPIP_ADAPTER_IF_AP, ESP_NETIF_DNS_MAIN, &ip_dns);
+  Serial.printf("\tcpip_adapter_set_dns_info ESP_NETIF_DNS_MAIN: err %s . ip_dns:" IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
+  
+  // ip_dns.ip.u_addr.ip4.addr = ipaddr_addr("8.8.8.8");
+  // ip_dns.ip.type = IPADDR_TYPE_V4;
+  //  err = tcpip_adapter_set_dns_info(TCPIP_ADAPTER_IF_STA, ESP_NETIF_DNS_BACKUP, &ip_dns);
+  // Serial.printf("\tcpip_adapter_set_dns_info ESP_NETIF_DNS_BACKUP: err %s . ip_dns:" IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
+ 
+
+  dhcps_offer_t opt_val = OFFER_DNS; // supply a dns server via dhcps
+  tcpip_adapter_dhcps_option(ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &opt_val, 1);
+
+  err = tcpip_adapter_dhcps_start(TCPIP_ADAPTER_IF_AP);
+  Serial.printf("\ntcpip_adapter_dhcps_start: err %s\n", esp_err_to_name(err)) ;
+
+
 
 
   //**  Enable NAT:
   //**
   //***********************************
-  // For ESP8266 example:
-  // err_t ret = ip_napt_init(NAPT, NAPT_PORT);
-  // err_t ret = 0;
-  // Serial.printf("ip_napt_init(%d,%d): ret=%d (OK=%d)\n", NAPT, NAPT_PORT, (int)ret, (int)ERR_OK);
-  
-  // if (ret == ERR_OK) {
-  //   // ret = ip_napt_enable_no(SOFTAP_IF, 1);
-  //   uint32_t my_ap_ip = ipaddr_addr("192.168.4.1");
-  //   ip_napt_enable(my_ap_ip, 1);
-  //   Serial.printf("ip_napt_enable_no(SOFTAP_IF): ret=%d (OK=%d)\n", (int)ret, (int)ERR_OK);
-  //   if (ret == ERR_OK) {
-  //     Serial.printf("WiFi Network '%s' with same password is now NATed behind '%s'\n", STASSID "extender", STASSID);
-  //   }
-  // }
-  // Serial.printf("Heap after napt init: %d\n", ESP.getFreeHeap());
-  // if (ret != ERR_OK) {
-  //   Serial.printf("NAPT initialization failed\n");
-  // }
 
   // For esp32:
   #if IP_NAPT
   // u32_t napt_netif_ip = 0xC0A80401; // Set to ip address of softAP netif (Default is 192.168.4.1)
   // ip_napt_enable(htonl(napt_netif_ip), 1);
   // ip_napt_enable_no(WiFi.softAPNetworkID(), 1);
-  ip_napt_enable_no(ESP_IF_WIFI_AP, 1);
+  // ip_napt_enable_no(ESP_IF_WIFI_AP, 1);
   // ip_napt_enable(IPAddress(192, 168, 4, 1), 1);
+
   ip_napt_enable(WiFi.softAPIP(), 1);
 
   #endif
 
 
+  Serial.printf("Heap before: %d\n", ESP.getFreeHeap());
+  Serial.println();
 }
 
 
