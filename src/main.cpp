@@ -8,6 +8,9 @@
 
 
 #include <WiFi.h>
+#include "esp_wifi.h"
+
+
 #if !IP_NAPT
   #error "IP_NAPT must be defined"
 #else
@@ -18,6 +21,8 @@
 #include "dhcpserver/dhcpserver_options.h"
 
 
+uint8_t AP_clients = 0;
+uint8_t AP_clients_last = AP_clients;
 
 
 
@@ -169,4 +174,32 @@ void setup() {
 
 
 void loop() {
+
+  AP_clients = WiFi.softAPgetStationNum();
+
+  if (AP_clients_last != AP_clients){
+    Serial.printf("Stations connected to AP: %d\n", AP_clients);
+    AP_clients_last = AP_clients;
+
+    wifi_sta_list_t wifi_sta_list;
+    tcpip_adapter_sta_list_t adapter_sta_list;
+  
+    memset(&wifi_sta_list, 0, sizeof(wifi_sta_list));
+    memset(&adapter_sta_list, 0, sizeof(adapter_sta_list));
+
+    delay(500);   // To give time to AP to provide IP to the new station
+    esp_wifi_ap_get_sta_list(&wifi_sta_list);
+    tcpip_adapter_get_sta_list(&wifi_sta_list, &adapter_sta_list);
+  
+    for (int i = 0; i < adapter_sta_list.num; i++) {
+      tcpip_adapter_sta_info_t station = adapter_sta_list.sta[i];
+      Serial.printf("\t - Station %d MAC: ", i);
+      for(int i = 0; i< 6; i++){
+        Serial.printf("%02X", station.mac[i]);  
+        if(i<5)Serial.print(":");
+      }
+      Serial.printf("  IP: " IPSTR, IP2STR(&station.ip));
+      Serial.println();
+    }
+  }
 }
