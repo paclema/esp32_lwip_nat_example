@@ -24,6 +24,8 @@
 uint8_t AP_clients = 0;
 uint8_t AP_clients_last = AP_clients;
 
+#define PROTO_TCP 6
+#define PROTO_UDP 17
 
 
 
@@ -134,7 +136,7 @@ void setup() {
   // Serial.printf("\tcpip_adapter_set_dns_info ESP_NETIF_DNS_FALLBACK: err %s . ip_dns:" IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
  
   err = tcpip_adapter_set_dns_info(TCPIP_ADAPTER_IF_AP, ESP_NETIF_DNS_MAIN, &ip_dns);
-  Serial.printf("\tcpip_adapter_set_dns_info ESP_NETIF_DNS_MAIN: err %s . ip_dns:" IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
+  Serial.printf("\ntcpip_adapter_set_dns_info ESP_NETIF_DNS_MAIN: err %s . ip_dns:" IPSTR, esp_err_to_name(err), IP2STR(&ip_dns.ip.u_addr.ip4)) ;
   
   // ip_dns.ip.u_addr.ip4.addr = ipaddr_addr("8.8.8.8");
   // ip_dns.ip.type = IPADDR_TYPE_V4;
@@ -164,6 +166,10 @@ void setup() {
   // ip_napt_enable(IPAddress(192, 168, 4, 1), 1);
 
   ip_napt_enable(WiFi.softAPIP(), 1);
+
+  // Example port mapping to stations:
+  ip_portmap_add(PROTO_TCP,WiFi.localIP(), 8080,IPAddress(192, 168, 4, 3), 80 );
+  ip_portmap_add(PROTO_UDP,WiFi.localIP(), 8080,IPAddress(192, 168, 4, 3), 80 );
 
   #endif
 
