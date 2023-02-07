@@ -54,9 +54,16 @@ void setup() {
   //** Give DNS servers to AP side (Added after softAP setup)
   //**
   //***********************************
-  // For ESP8266 example:
-  // dhcpSoftAP.dhcps_set_dns(0, WiFi.dnsIP(0));
-  // dhcpSoftAP.dhcps_set_dns(1, WiFi.dnsIP(1));
+  // For ESP8266 example: (From RangeExtender-NAPT example: https://github.com/esp8266/Arduino/tree/master/libraries/ESP8266WiFi/examples/RangeExtender-NAPT)
+  // By default, DNS option will point to the interface IP
+  // Instead, point it to the real DNS server.
+  // Notice that:
+  // - DhcpServer class only supports IPv4
+  // - Only a single IP can be set
+  // #include <LwipDhcpServer.h>
+  // auto& server = WiFi.softAPDhcpServer();
+  // server.setDns(WiFi.dnsIP(0));
+
 
   // For esp32:
   #ifdef __DHCPS_H__
